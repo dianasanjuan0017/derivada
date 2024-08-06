@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derivada de cx^n</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.0.1/math.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Calculadora de Derivadas</h1>
+    <form id="inputForm">
+        <label for="functionInput">Función (formato cx^n):</label>
+        <input type="text" id="functionInput" name="functionInput" required>
+        <br><br>
+        <button type="submit">Calcular y Graficar</button>
+    </form>
+    <h2>Resultado de la Derivada:</h2>
+    <p id="derivativeResult"></p>
+    <canvas id="myChart" width="800" height="400"></canvas>
+
+    <script>
+        document.getElementById('inputForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const input = document.getElementById('functionInput').value;
+            deriveAndPlot(input);
+        });
+
+        function deriveAndPlot(input) {
+            // Separar el coeficiente y el exponente de la entrada
+            const functionRegex = /^([+-]?\d*\.?\d*\/?\d*[abcd]?)?\*?x\^([+-]?\d*\.?\d*\/?\d*)$/;
+            const match = input.match(functionRegex);
+            
+            if (!match) {
+                alert('Formato de entrada inválido. Use el formato cx^n');
+                return;
+            }
+
+            let coef = match[1];
+            const exp = match[2];
+
+            // Definir las constantes permitidas
+            const constants = {a: 'a', b: 'b', c: 'c', d: 'd'};
+            
+            // Convertir coeficiente a constante o número
+            if (constants[coef]) {
+                coef = constants[coef];
+            } else if (coef === undefined || coef === '') {
+                coef = 1; // Caso donde el coeficiente no está presente, asumir 1
+            } else {
+                coef = math.evaluate(coef);
+            }
+
+            // Convertir el exponente a número, manejando fracciones correctamente
+            const expNumber = math.evaluate(exp);
+
+            // Definir la función f(x) = coef * x ^ exp
+            const f = math.parse(`${coef} * x ^ ${expNumber}`);
+            const df = math.derivative(f, 'x');
+
+            // Obtener el resultado de la derivada en formato adecuado
+            const dfDisplay = formatDerivative(df, coef, expNumber);
+
+            document.getElementById('derivativeResult').innerText = `f'(x) = ${dfDisplay}`;
+
+            // Compilar las funciones para su evaluación
+            const fCompiled = f.compile();
+            const dfCompiled = df.compile();
+
+            // Crear un rango de valores para x
+            const xValues = math.range(-10, 10, 0.1).toArray();
+
+            // Evaluar las funciones
+            const fValues = xValues.map(x => fCompiled.evaluate({x}));
+            const dfValues = xValues.map(x => dfCompiled.evaluate({x}));
+
+            // Graficar las funciones usando Chart.js
+            const ctx = document.getElementById('myChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: xValues,
+                    datasets: [
+                        {
+                            label: `Original: ${coef} * x ^ ${expNumber}`,
+                            data: fValues,
+                            borderColor: 'blue',
+                            fill: false
+                        },
+                        {
+                            label: `Derivada`,
+                            data: dfValues,
+                            borderColor: 'red',
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function formatDerivative(df, coef, exp) {
+            const expValue = math.evaluate(exp);
+            const dfCoefValue = coef * expValue;
+            const dfCoef = formatFraction(dfCoefValue);
+            const dfExp = formatFraction(expValue - 1);
+            
+            return `${dfCoef} * x^(${dfExp})`;
+        }
+
+        function formatFraction(value) {
+            const fraction = math.fraction(value);
+            return `${fraction.n}/${fraction.d}`;
+        }
+    </script>
+</body>
+</html>
+
+
